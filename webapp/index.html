@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://web.telegram.org https://telegram.org https://*.telegram.org;">
+    <title>Мор. Эпоха мёртвых - Игра</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Экран главного меню -->
+    <div id="main-menu-screen" class="screen active">
+        <div class="main-menu-container">
+            <!-- Фоновое изображение главного меню -->
+            <div class="main-menu-background"></div>
+            <!-- Эффект дождя -->
+            <div class="rain-effect"></div>
+            <!-- Контент меню -->
+            <div class="main-menu-content">
+                <nav class="main-menu-nav">
+                    <button class="menu-nav-item" id="continue-menu-btn">ПРОДОЛЖИТЬ</button>
+                    <button class="menu-nav-item" id="new-game-menu-btn">НОВАЯ ИГРА</button>
+                    <button class="menu-nav-item" id="load-menu-btn">ЗАГРУЗИТЬ</button>
+                    <button class="menu-nav-item" id="settings-menu-btn">ПОЛНАЯ ВЕРСИЯ</button>
+                    <a href="https://t.me/travinskiiy" target="_blank" class="menu-nav-item telegram-link">АВТОР: TRAVINSKIY</a>
+                </nav>
+                <button class="recommend-btn" id="recommend-btn">
+                    <span class="recommend-icon">📤</span>
+                    <span>ПОДЕЛИТЬСЯ</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Главный экран -->
+    <div id="main-screen" class="screen">
+        <div class="game-container">
+            <!-- Фоновое изображение -->
+            <div class="background-image" id="background-image"></div>
+            
+            <!-- Затемнение для текста -->
+            <div class="overlay"></div>
+            
+            <!-- Заголовок главы -->
+            <div class="chapter-title" id="chapter-title"></div>
+            
+            <!-- Текст главы -->
+            <div class="chapter-text" id="chapter-text"></div>
+            
+            <!-- Кнопки выбора -->
+            <div class="choices-container" id="choices-container"></div>
+            
+            <!-- Кнопка статусов в левом верхнем углу -->
+            <div class="status-btn-container" id="status-btn-container">
+                <button class="status-btn" id="status-btn">📊</button>
+            </div>
+            
+            <!-- Индикатор инвентаря -->
+            <div class="inventory-indicator" id="inventory-indicator">
+                <div class="inventory-title">📦 Инвентарь</div>
+                <div id="inventory-items"></div>
+            </div>
+            
+            <!-- Прогресс-бар главы -->
+            <div class="chapter-progress" id="chapter-progress">
+                <div class="chapter-progress-bar" id="chapter-progress-bar" style="width: 0%"></div>
+            </div>
+            
+            <!-- Контейнер для эффектов частиц -->
+            <div class="particles-container" id="particles-container"></div>
+            
+            <!-- Меню игры -->
+            <div class="game-menu" id="game-menu">
+                <button class="menu-btn" id="menu-btn">☰</button>
+            </div>
+            <!-- Меню-панель ВЫНЕСЕНА из game-menu для полной независимости -->
+            <div class="menu-panel" id="menu-panel">
+                <button class="menu-item" id="save-btn">💾 Сохранить</button>
+                <button class="menu-item" id="load-btn">📂 Загрузить</button>
+                <button class="menu-item" id="achievements-btn">🏆 Достижения</button>
+                <button class="menu-item" id="inventory-btn">📦 Инвентарь</button>
+                <button class="menu-item" id="stats-btn">📊 Статистика</button>
+                <button class="menu-item" id="settings-btn">⚙️ Настройки</button>
+                <button class="menu-item" id="restart-btn">🔄 Начать заново</button>
+                <button class="menu-item" id="back-to-menu-btn">← Вернуться в меню</button>
+            </div>
+            
+            <!-- Индикатор загрузки -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+        
+        <!-- Аудио для музыки главного меню -->
+        <audio id="menu-music" loop preload="auto">
+            <source src="audio/Labyrinth-of-Lost-Dreams-MP3(chosic.com).mp3" type="audio/mpeg">
+            Ваш браузер не поддерживает аудио элемент.
+        </audio>
+        
+        <!-- Аудио для фоновой музыки (воспроизводится циклично во всей игре) -->
+        <audio id="background-music" loop preload="auto">
+            <source src="audio/botabateau_-_Halloween_Lurking_71372883.mp3" type="audio/mpeg">
+            Ваш браузер не поддерживает аудио элемент.
+        </audio>
+        
+        <!-- Аудио для тревожной музыки (включается в напряженные моменты) -->
+        <audio id="tension-music" loop preload="auto">
+            <source src="audio/Horror_Music_Collection_-_Underworld_Horror_Music_71419675.mp3" type="audio/mpeg">
+            Ваш браузер не поддерживает аудио элемент.
+        </audio>
+        
+        <!-- Аудио для звуковых эффектов -->
+        <audio id="sound-effects" preload="auto">
+            <source src="audio/short-click-of-a-computer-mouse.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+    
+    <!-- Экран меню -->
+    <div id="menu-screen" class="screen">
+        <div class="menu-screen-content">
+            <h1>Меню игры</h1>
+            <button class="menu-screen-btn" id="continue-game-btn">▶️ Продолжить</button>
+            <button class="menu-screen-btn" id="new-game-btn">🆕 Новая игра</button>
+            <button class="menu-screen-btn" id="load-game-btn">📂 Загрузить</button>
+            <button class="menu-screen-btn" id="settings-screen-btn">⚙️ Настройки</button>
+            <button class="menu-screen-btn" id="back-to-game-btn">← Назад к игре</button>
+        </div>
+    </div>
+    
+    <!-- Экран премиум-функций -->
+    <div id="premium-screen" class="screen">
+        <div class="settings-content">
+            <div class="premium-content">
+                <div class="premium-icon">⭐</div>
+                <h2>Полная версия игры</h2>
+                <div class="premium-features">
+                    <p><strong>💾 Множественные сохранения</strong><br>
+                    Создавайте неограниченное количество слотов сохранения. Сохраняйте прогресс в разных точках истории и возвращайтесь к ним в любой момент.</p>
+                    
+                    <p><strong>📖 Эксклюзивные главы</strong><br>
+                    Получите доступ к дополнительным главам сюжета, которые доступны только в полной версии. Узнайте больше о мире игры и персонажах.</p>
+                    
+                    <p><strong>🚫 Без рекламы</strong><br>
+                    Играйте без отвлекающей рекламы. Полностью погрузитесь в атмосферу игры без перерывов.</p>
+                    
+                    <p><strong>⚡ Приоритетная поддержка</strong><br>
+                    Получите приоритетную техническую поддержку. Ваши вопросы и проблемы будут решаться в первую очередь.</p>
+                    
+                    <p><strong>🎨 Эксклюзивные скины интерфейса</strong><br>
+                    Настройте внешний вид игры под себя. Выберите из коллекции эксклюзивных тем оформления.</p>
+                    
+                    <p><strong>📊 Расширенная статистика</strong><br>
+                    Получите доступ к детальной статистике прохождения, сравнениям с другими игроками и аналитике ваших выборов.</p>
+                </div>
+                <div class="premium-price" style="margin: 10px 0 6px; font-size: 16px; color: #e0e0e0;">
+                    <span style="text-decoration: line-through; color: #b0b0b0; margin-right: 8px;">400 ₽</span>
+                    <strong style="color: #ffd700;">199 ₽</strong>
+                    <span style="margin-left: 6px; color: #ffd700;">ограниченное предложение</span>
+                </div>
+                <button class="premium-btn" onclick="purchasePremium()">Приобрести полную версию</button>
+                <button class="back-btn" id="back-from-premium-btn" style="margin-top: 15px;">← Назад</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Экран настроек -->
+    <div id="settings-screen" class="screen">
+        <div class="settings-content">
+            <h1>Настройки</h1>
+            
+            <h2 style="font-size: 20px; margin-top: 20px; margin-bottom: 10px; color: #d4d4d4;">Звук</h2>
+            <div class="setting-item">
+                <label>Включить музыку</label>
+                <input type="checkbox" id="enable-music" checked>
+            </div>
+            <div class="setting-item">
+                <label>Громкость музыки</label>
+                <input type="range" id="music-volume" min="0" max="100" value="50">
+                <span id="music-volume-value">50%</span>
+            </div>
+            <div class="setting-item">
+                <label>Включить звуковые эффекты</label>
+                <input type="checkbox" id="enable-sounds" checked>
+            </div>
+            <div class="setting-item">
+                <label>Громкость звуков</label>
+                <input type="range" id="sound-volume" min="0" max="100" value="70">
+                <span id="sound-volume-value">70%</span>
+            </div>
+            
+            <h2 style="font-size: 20px; margin-top: 20px; margin-bottom: 10px; color: #d4d4d4;">Визуальные эффекты</h2>
+            <div class="setting-item">
+                <label>Включить визуальные эффекты</label>
+                <input type="checkbox" id="enable-effects" checked>
+            </div>
+            <div class="setting-item">
+                <label>Эффект крови</label>
+                <input type="checkbox" id="enable-blood-effect" checked>
+            </div>
+            <div class="setting-item">
+                <label>Эффект дыма</label>
+                <input type="checkbox" id="enable-smoke-effect" checked>
+            </div>
+            <div class="setting-item">
+                <label>Эффект освещения</label>
+                <input type="checkbox" id="enable-lighting-effect" checked>
+            </div>
+            <div class="setting-item">
+                <label>Вспышки при выстрелах</label>
+                <input type="checkbox" id="enable-flash-effect" checked>
+            </div>
+            
+            <h2 style="font-size: 20px; margin-top: 20px; margin-bottom: 10px; color: #d4d4d4;">Игра</h2>
+            <div class="setting-item">
+                <label>Автосохранение</label>
+                <input type="checkbox" id="autosave" checked>
+            </div>
+            <div class="setting-item">
+                <label>Автопрокрутка текста</label>
+                <input type="checkbox" id="auto-scroll">
+            </div>
+            <div class="setting-item">
+                <label>Скорость автопрокрутки</label>
+                <input type="range" id="scroll-speed" min="10" max="200" value="50">
+                <span id="scroll-speed-value">50</span>
+            </div>
+            
+            <h2 style="font-size: 20px; margin-top: 20px; margin-bottom: 10px; color: #d4d4d4;">Доступность</h2>
+            <div class="setting-item">
+                <label>Размер шрифта</label>
+                <input type="range" id="font-size" min="14" max="24" value="18">
+                <span id="font-size-value">18px</span>
+            </div>
+            <div class="setting-item">
+                <label>Контраст</label>
+                <select id="contrast" style="width: 100%; padding: 8px; background: rgba(40, 50, 40, 0.7); color: #e0e0e0; border: 1px solid rgba(80, 90, 80, 0.5); border-radius: 5px;">
+                    <option value="normal">Обычный</option>
+                    <option value="high">Высокий</option>
+                    <option value="very-high">Очень высокий</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label>Режим для слабовидящих</label>
+                <input type="checkbox" id="accessibility-mode">
+            </div>
+            <div class="setting-item">
+                <label>Субтитры для звуков</label>
+                <input type="checkbox" id="sound-subtitles">
+            </div>
+            
+            <h2 style="font-size: 20px; margin-top: 20px; margin-bottom: 10px; color: #d4d4d4;">Технические</h2>
+            <div class="setting-item">
+                <button class="modal-btn" id="clear-cache-btn" style="width: 100%; margin-top: 10px; background: rgba(200, 50, 50, 0.3); border-color: rgba(200, 50, 50, 0.5);">
+                    🔄 Очистить кэш и обновить
+                </button>
+                <p style="font-size: 12px; color: #999; margin-top: 5px; text-align: center;">
+                    Используйте, если игра не обновляется
+                </p>
+            </div>
+            
+            <button class="back-btn" id="back-from-settings-btn">← Назад</button>
+        </div>
+    </div>
+    
+    <script>
+        // Адрес бэкенда оплаты (измените на ваш домен в продакшене)
+        window.PAYMENTS_API_BASE = "https://naval-screen-legislature-battery.trycloudflare.com";
+        // Короткая ссылка для кнопки "Поделиться" (замените на вашу)
+        window.SHARE_LINK = "https://t.me/botpandemiabot";
+        // Описание для шаринга
+        window.SHARE_TEXT = "Мор. Эпоха мёртвых — квест-игра в Telegram.";
+    </script>
+    <script src="game.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
