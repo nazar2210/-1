@@ -1677,7 +1677,16 @@ async function purchasePremium() {
         });
 
         if (!response.ok) {
-            showNotification('Не удалось создать оплату. Попробуйте позже.');
+            let errorText = 'Не удалось создать оплату. Попробуйте позже.';
+            try {
+                const errorData = await response.json();
+                if (errorData && errorData.detail) {
+                    errorText = `Ошибка оплаты: ${errorData.detail}`;
+                }
+            } catch (e) {
+                // ignore json parse errors
+            }
+            showNotification(errorText);
             return;
         }
 

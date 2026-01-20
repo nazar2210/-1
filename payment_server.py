@@ -10,6 +10,8 @@ import sqlite3
 import urllib.parse
 import uuid
 
+import logging
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -19,6 +21,7 @@ import config
 
 
 DB_PATH = config.DATABASE_PATH
+logger = logging.getLogger("payment_server")
 
 
 def init_db():
@@ -75,6 +78,13 @@ def parse_and_verify_init_data(init_data: str) -> dict:
     ).hexdigest()
 
     if calculated_hash != received_hash:
+        token_suffix = (config.BOT_TOKEN or "")[-4:]
+        bot_id = (config.BOT_TOKEN or "").split(":", 1)[0]
+        logger.warning(
+            "InitData signature mismatch: bot_id=%s token_suffix=%s",
+            bot_id,
+            token_suffix,
+        )
         raise HTTPException(status_code=401, detail="Invalid initData signature")
 
     return parsed
@@ -261,6 +271,17 @@ def admin_grant(payload: AdminGrantRequest, request: Request):
         raise HTTPException(status_code=403, detail="Forbidden")
     set_premium_active(payload.user_id, payment_id="admin_grant")
     return {"user_id": payload.user_id, "active": True}
+
+
+@app.get("/api/debug/bot")
+def debug_bot():
+    bot_token = config.BOT_TOKEN or ""
+    bot_id = bot_token.split(":", 1)[0] if ":" in bot_token else ""
+    return {
+        "bot_id": bot_id,
+        "token_suffix": bot_token[-4:] if bot_token else "",
+        "token_len": len(bot_token),
+    }
 
 
 if __name__ == "__main__":

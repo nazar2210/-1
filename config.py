@@ -20,6 +20,8 @@ else:
 
 # Получаем токен из переменных окружения
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+if BOT_TOKEN:
+    BOT_TOKEN = BOT_TOKEN.strip()
 
 # Если токен не загрузился через dotenv, пытаемся прочитать напрямую из файла
 if not BOT_TOKEN or BOT_TOKEN == 'YOUR_BOT_TOKEN_HERE':
@@ -48,7 +50,7 @@ YOOKASSA_SECRET_KEY = os.getenv('YOOKASSA_SECRET_KEY', '')
 PAYMENT_RETURN_URL = os.getenv('PAYMENT_RETURN_URL', 'https://nazar-roan.vercel.app/')
 PREMIUM_PRICE_RUB = os.getenv('PREMIUM_PRICE_RUB', '199.00')
 PAYMENT_SERVER_URL = os.getenv('PAYMENT_SERVER_URL', 'http://localhost:9000')
-ADMIN_API_TOKEN = os.getenv('ADMIN_API_TOKEN', '')
+ADMIN_API_TOKEN = os.getenv('ADMIN_API_TOKEN', '').strip()
 
 # Администраторы бота (список user_id через запятую)
 _admin_env = [
