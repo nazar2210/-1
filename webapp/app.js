@@ -1680,8 +1680,9 @@ async function purchasePremium() {
             let errorText = 'Не удалось создать оплату. Попробуйте позже.';
             try {
                 const errorData = await response.json();
-                if (errorData && errorData.detail) {
-                    errorText = `Ошибка оплаты: ${errorData.detail}`;
+            if (errorData && errorData.detail) {
+                const initLen = initData ? initData.length : 0;
+                errorText = `Ошибка оплаты: ${errorData.detail} (initData=${initLen})`;
                 }
             } catch (e) {
                 // ignore json parse errors

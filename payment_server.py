@@ -81,9 +81,12 @@ def parse_and_verify_init_data(init_data: str) -> dict:
         token_suffix = (config.BOT_TOKEN or "")[-4:]
         bot_id = (config.BOT_TOKEN or "").split(":", 1)[0]
         logger.warning(
-            "InitData signature mismatch: bot_id=%s token_suffix=%s",
+            "InitData signature mismatch: bot_id=%s token_suffix=%s init_len=%s recv_hash=%s calc_hash=%s",
             bot_id,
             token_suffix,
+            len(init_data),
+            received_hash[-6:] if received_hash else "",
+            calculated_hash[-6:] if calculated_hash else "",
         )
         raise HTTPException(status_code=401, detail="Invalid initData signature")
 
