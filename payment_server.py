@@ -49,6 +49,30 @@ def init_db():
         )
         """
     )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS promo_codes (
+            code TEXT PRIMARY KEY,
+            is_used INTEGER NOT NULL DEFAULT 0,
+            used_by_user_id INTEGER,
+            used_at TEXT
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+def seed_promo_codes():
+    if not config.TRIAL_PROMO_CODES:
+        return
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    for code in config.TRIAL_PROMO_CODES:
+        cursor.execute(
+            "INSERT OR IGNORE INTO promo_codes (code, is_used) VALUES (?, 0)",
+            (code,),
+        )
     conn.commit()
     conn.close()
 
@@ -64,18 +88,32 @@ def parse_and_verify_init_data(init_data: str) -> dict:
     if not config.BOT_TOKEN or config.BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
         raise HTTPException(status_code=500, detail="BOT_TOKEN not configured for initData validation")
 
-    parsed = dict(urllib.parse.parse_qsl(init_data, strict_parsing=True))
+    pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
+    parsed = dict(pairs)
     received_hash = parsed.get("hash")
     if not received_hash:
         raise HTTPException(status_code=400, detail="Missing initData hash")
 
-    data_check_string = "\n".join(
-        f"{k}={v}" for k, v in sorted(parsed.items()) if k != "hash"
-    )
-    secret_key = hashlib.sha256(config.BOT_TOKEN.encode("utf-8")).digest()
-    calculated_hash = hmac.new(
-        secret_key, data_check_string.encode("utf-8"), hashlib.sha256
-    ).hexdigest()
+    secret_key = hmac.new(
+        b"WebAppData", config.BOT_TOKEN.encode("utf-8"), hashlib.sha256
+    ).digest()
+
+    def build_hash(exclude_signature: bool) -> str:
+        parts = []
+        for key, value in pairs:
+            if key == "hash":
+                continue
+            if exclude_signature and key == "signature":
+                continue
+            parts.append(f"{key}={value}")
+        data_check_string = "\n".join(sorted(parts))
+        return hmac.new(
+            secret_key, data_check_string.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+
+    calculated_hash = build_hash(exclude_signature=False)
+    if calculated_hash != received_hash and "signature" in parsed:
+        calculated_hash = build_hash(exclude_signature=True)
 
     if calculated_hash != received_hash:
         token_suffix = (config.BOT_TOKEN or "")[-4:]
@@ -151,6 +189,11 @@ class AdminGrantRequest(BaseModel):
     user_id: int
 
 
+class PromoRedeemRequest(BaseModel):
+    code: str
+    init_data: str
+
+
 app = FastAPI(title="Payments API")
 app.add_middleware(
     CORSMiddleware,
@@ -158,6 +201,7 @@ app.add_middleware(
         "http://localhost:8000",
         "http://localhost:9000",
         "https://nazar-roan.vercel.app",
+        "https://webapp-blue-mu.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -168,6 +212,95 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     init_db()
+    seed_promo_codes()
+
+
+def _normalize_promo_code(raw: str) -> str:
+    return "".join(ch for ch in (raw or "") if ch.isdigit())
+
+
+def _set_premium_active_in_conn(conn: sqlite3.Connection, user_id: int, payment_id: str | None) -> None:
+    cursor = conn.cursor()
+    now = datetime.utcnow().isoformat()
+    cursor.execute(
+        """
+        INSERT INTO premium_users (user_id, is_active, activated_at, payment_id)
+        VALUES (?, 1, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            is_active=1,
+            activated_at=excluded.activated_at,
+            payment_id=excluded.payment_id
+        """,
+        (user_id, now, payment_id),
+    )
+
+
+@app.post("/api/promo/redeem")
+def redeem_promo(payload: PromoRedeemRequest):
+    """Одноразовый промокод: сгорает после успешной активации."""
+    if not payload.init_data:
+        raise HTTPException(status_code=400, detail="Откройте игру из Telegram")
+
+    parsed = parse_and_verify_init_data(payload.init_data)
+    user_raw = parsed.get("user")
+    user_id = None
+    if user_raw:
+        try:
+            user = json.loads(user_raw)
+            user_id = user.get("id")
+        except json.JSONDecodeError:
+            pass
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Не удалось определить пользователя Telegram")
+
+    code = _normalize_promo_code(payload.code)
+    if not code:
+        raise HTTPException(status_code=400, detail="Введите код из цифр")
+
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        cur = conn.cursor()
+        cur.execute("SELECT is_active FROM premium_users WHERE user_id = ?", (user_id,))
+        prem = cur.fetchone()
+        if prem and prem[0]:
+            conn.rollback()
+            return {"ok": True, "already_active": True}
+
+        cur.execute("SELECT is_used FROM promo_codes WHERE code = ?", (code,))
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            raise HTTPException(status_code=404, detail="Неверный промокод")
+        if row[0]:
+            conn.rollback()
+            raise HTTPException(status_code=400, detail="Промокод уже использован")
+
+        now = datetime.utcnow().isoformat()
+        cur.execute(
+            """
+            UPDATE promo_codes
+            SET is_used = 1, used_by_user_id = ?, used_at = ?
+            WHERE code = ? AND is_used = 0
+            """,
+            (user_id, now, code),
+        )
+        if cur.rowcount != 1:
+            conn.rollback()
+            raise HTTPException(status_code=400, detail="Промокод уже использован")
+
+        _set_premium_active_in_conn(conn, user_id, f"promo:{code}")
+        conn.commit()
+        logger.info("Promo redeemed: user_id=%s code_suffix=%s", user_id, code[-4:])
+        return {"ok": True, "already_active": False}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        logger.exception("Promo redeem failed: %s", e)
+        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    finally:
+        conn.close()
 
 
 @app.post("/api/payments/create")
