@@ -42,15 +42,24 @@ if not BOT_TOKEN or BOT_TOKEN == 'YOUR_BOT_TOKEN_HERE':
 if not BOT_TOKEN:
     BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE'
 
-DATABASE_PATH = 'game_data.db'
+# Абсолютный путь: иначе при другом cwd у payment_server и бота появляются разные БД и «слетает» премиум
+DATABASE_PATH = os.getenv('DATABASE_PATH', str(BASE_DIR / 'game_data.db'))
 
 # Настройки оплаты (ЮKassa + СБП)
 YOOKASSA_SHOP_ID = os.getenv('YOOKASSA_SHOP_ID', '')
 YOOKASSA_SECRET_KEY = os.getenv('YOOKASSA_SECRET_KEY', '')
-PAYMENT_RETURN_URL = os.getenv('PAYMENT_RETURN_URL', 'https://nazar-roan.vercel.app/')
-PREMIUM_PRICE_RUB = os.getenv('PREMIUM_PRICE_RUB', '199.00')
+PAYMENT_RETURN_URL = os.getenv('PAYMENT_RETURN_URL', 'https://webapp-blue-mu.vercel.app/')
+PREMIUM_PRICE_RUB = os.getenv('PREMIUM_PRICE_RUB', '99.00')
 PAYMENT_SERVER_URL = os.getenv('PAYMENT_SERVER_URL', 'http://localhost:9000')
 ADMIN_API_TOKEN = os.getenv('ADMIN_API_TOKEN', '').strip()
+
+# Пробные одноразовые промокоды (только цифры), через запятую. Пустая строка — не создавать коды при старте.
+_default_trial_promos = (
+    '384729105847,592038475610,847362918405,192837465029,638291047583,'
+    '475829103647,291047583629,847510293846,563829104758,729384756102'
+)
+_trial_raw = os.getenv('TRIAL_PROMO_CODES', _default_trial_promos)
+TRIAL_PROMO_CODES = [c.strip() for c in _trial_raw.split(',') if c.strip() and c.strip().isdigit()]
 
 # Администраторы бота (список user_id через запятую)
 _admin_env = [
