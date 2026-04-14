@@ -131,6 +131,48 @@ body {
     padding-bottom: 10px;
 }
 
+.choices-container.ending-overlay {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 20px 30px;
+    gap: 12px;
+}
+
+.ending-caption {
+    width: min(92vw, 460px);
+    margin: 0 auto;
+    padding: 10px 14px;
+    text-align: center;
+    color: #f2f2f2;
+    font-size: 19px;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.ending-return-btn {
+    width: min(92vw, 320px);
+    margin: 0 auto;
+    justify-content: center;
+    text-align: center;
+    font-weight: 700;
+}
+
+.chapter-dark-overlay {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 10020;
+    pointer-events: none;
+}
+
 .choice-btn {
     background: linear-gradient(135deg, rgba(60, 70, 60, 0.9) 0%, rgba(45, 55, 45, 0.9) 100%);
     color: #e0e0e0;

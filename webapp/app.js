@@ -3,6 +3,7 @@ let game;
 let tg;
 let previousScreen = 'main-menu-screen'; // Отслеживаем предыдущий экран для кнопки "Назад"
 let inventoryVisible = false;
+let endingDarkTimer = null;
 const SHARE_LINK = window.SHARE_LINK || 'https://t.me/your_bot';
 const SHARE_TEXT = window.SHARE_TEXT || 'Попробуй квест-игру "Мор. Эпоха мёртвых".';
 
@@ -1104,15 +1105,32 @@ function showScreen(screenId) {
 
 function showChapter(chapterId) {
     const chapter = game.getChapter(chapterId);
+    if (endingDarkTimer) {
+        clearTimeout(endingDarkTimer);
+        endingDarkTimer = null;
+    }
     
     // Обновляем заголовок
     const chapterTitle = document.getElementById('chapter-title');
+    const chapterText = document.getElementById('chapter-text');
+    const choicesContainer = document.getElementById('choices-container');
+    const isImageEnding = Boolean(chapter.imageEnding);
+
+    if (chapterTitle) {
+        chapterTitle.style.display = isImageEnding ? 'none' : '';
+    }
+    if (chapterText) {
+        chapterText.style.display = isImageEnding ? 'none' : '';
+    }
+    if (choicesContainer) {
+        choicesContainer.classList.toggle('ending-overlay', isImageEnding);
+    }
+
     if (chapterTitle) {
         chapterTitle.textContent = chapter.title;
     }
     
     // Обновляем текст с typewriter эффектом (если включен)
-    const chapterText = document.getElementById('chapter-text');
     if (chapterText) {
         if (game.settings.autoScroll && game.settings.scrollSpeed > 0) {
             typewriterText(chapterText, chapter.text, game.settings.scrollSpeed);
@@ -1157,6 +1175,10 @@ function showChapter(chapterId) {
     
     // Переключение музыки: тревожная музыка для напряженных моментов, основная для спокойных
     switchMusicForChapter(chapter);
+    if (chapter.menuMusic) {
+        stopAllMusic();
+        startMenuMusic();
+    }
     
     // Воспроизводим звуковые эффекты главы
     if (chapter.sounds && Array.isArray(chapter.sounds)) {
@@ -1167,9 +1189,14 @@ function showChapter(chapterId) {
     applyVisualEffects(chapter, chapterId);
     
     // Обновляем кнопки выбора
-    const choicesContainer = document.getElementById('choices-container');
     if (choicesContainer) {
         choicesContainer.innerHTML = '';
+        if (isImageEnding && chapter.endingCaption) {
+            const caption = document.createElement('div');
+            caption.className = 'ending-caption';
+            caption.textContent = chapter.endingCaption;
+            choicesContainer.appendChild(caption);
+        }
         
         if (chapter.choices && chapter.choices.length > 0) {
             let choices = chapter.choices;
@@ -1206,9 +1233,12 @@ function showChapter(chapterId) {
                 const btn = document.createElement('button');
                 btn.className = 'choice-btn';
 
-                let choiceText = `${visibleIndex}. ${choice.text}`;
+                let choiceText = isImageEnding ? choice.text : `${visibleIndex}. ${choice.text}`;
                 btn.textContent = choiceText;
                 btn.dataset.index = index;
+                if (isImageEnding) {
+                    btn.classList.add('ending-return-btn');
+                }
                 choicesContainer.appendChild(btn);
             });
         } else {
@@ -1236,6 +1266,16 @@ function showChapter(chapterId) {
     // Автосохранение
     if (game.settings.autosave) {
         game.save();
+    }
+
+    if (chapter.darkIntroMs && chapter.darkIntroMs > 0) {
+        const blackout = document.createElement('div');
+        blackout.className = 'chapter-dark-overlay';
+        document.body.appendChild(blackout);
+        endingDarkTimer = setTimeout(() => {
+            blackout.remove();
+            endingDarkTimer = null;
+        }, chapter.darkIntroMs);
     }
 }
 
